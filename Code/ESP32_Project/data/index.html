@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ESP32 Temp</title>
+</head>
+<body>
+  <h1>Thermodynamics room Monitor</h1>
+  <p>Temperature tracking: <span id="temp">--</span>°C</p>
+  <p>Humidity tracking: <span id="hum">--</span> %</p>
+  <p>Dewpoint tracking: <span id="dew">--</span>°C</p>
+  <p>Confort tracking: <span id="cf">--</span> </p>
+  <h2>Settings</h2>
+  <form id="settingsForm">
+  <label>Temperature Threshold (°C):
+    <input type="number" id="threshold" name="threshold" value="00">
+  </label>
+  <br>
+  <label>Tracking Update Timing (s):
+    <input type="number" id="interval" name="interval" value="00">
+  </label>
+  <br>
+  <button type="submit">Update</button>
+  </form>
+  <p id="status"></p>
+  <script>
+    async function fetchThermo() {
+      const response = await fetch('/temperature');
+      const data = await response.json();
+      document.getElementById('temp').innerText = data.temperature;
+
+      const resph = await fetch('/humidity');
+      const datah = await resph.json();
+      document.getElementById('hum').innerText = datah.humidity;
+
+      const respd = await fetch('/dewpoint');
+      const datad = await respd.json();
+      document.getElementById('dew').innerText = datad.dewpoint;
+
+      const respc = await fetch('/confort');
+      const datac = await respc.json();
+      document.getElementById('cf').innerText = datac.confort;
+
+    }
+
+    setInterval(fetchThermo, 2000); // refresh every 2s
+    fetchThermo(); // initial load
+
+    document.getElementById('settingsForm').addEventListener('submit', async function(e) {
+    e.preventDefault(); // prevent page reload
+
+        const threshold = document.getElementById('threshold').value;
+        const interval = document.getElementById('interval').value;
+
+        const response = await fetch('/settings', {method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threshold: parseFloat(threshold), interval: parseInt(interval) })});
+
+        const text = await response.text();
+        document.getElementById('status').innerText = text;
+    });
+
+  </script>
+</body>
+</html>
