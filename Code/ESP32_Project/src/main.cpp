@@ -21,6 +21,9 @@
 #define Comfort_topic "sensor/DHT11/Comfort"
 #define Hmac_topic "sensor/DHT11/Hmac"
 
+#define DHT11_all "sensor/DHT11/all"
+#define DHT11_HMAC "sensor/DHT11/all_Hmac"
+
 // Webserver
 
 AsyncWebServer server(80);
@@ -66,6 +69,8 @@ float g_temp, g_hum, g_heatIndex, g_dewPoint, g_cr, g_threshold;
 uint8_t AES_KEY [16];
 int g_interval;
 int buttonState = 0;  // variable for reading the pushbutton status
+String lastEncryptedPayload = "";
+String lastHMAC = "";
 TaskHandle_t tempTaskHandle = NULL; // Thread pointer
 Ticker tempTicker(getTemperature,10000,0,MILLIS); // Interrupt
 Ticker PublishTicker(publishData,20000,0,MILLIS); // Interrupt publishment on Mosquitto
@@ -181,7 +186,7 @@ void publishData(){
 
     Serial.println("***** PUBLISHMENT OF ENCRYPTED DATA TO MQTT SERVER****");
 
-    String payload_hum = CypherGeneration(humidity_topic, g_hum);
+    /*String payload_hum = CypherGeneration(humidity_topic, g_hum);
     HMACGeneration(Hmac_topic, payload_hum);
     String payload_temp = CypherGeneration(temperature_topic, g_temp);
     HMACGeneration(Hmac_topic, payload_temp);
@@ -190,7 +195,31 @@ void publishData(){
     String payload_dew = CypherGeneration(dewPoint_topic, g_dewPoint);
     HMACGeneration(Hmac_topic, payload_dew);
     String payload_conf = CypherGeneration(Comfort_topic, g_cr);
-    HMACGeneration(Hmac_topic, payload_conf);
+    HMACGeneration(Hmac_topic, payload_conf);*/
+
+    DynamicJsonDocument doc(256);
+    doc["temp"] = g_temp;
+    doc["hum"] = g_hum;
+    doc["heat"] = g_heatIndex;
+    doc["dew"] = g_dewPoint;
+    doc["comfort"] = g_cr;
+
+    String payload;
+    serializeJson(doc, payload);
+
+    String encrypted = aes_encrypt(payload);
+    String hmac_message = Hmac_encrypt(encrypted);
+
+    client.publish(DHT11_all, encrypted.c_str(), true);
+    client.publish(DHT11_HMAC, hmac_message.c_str(), true);
+
+    Serial.print("HMAC");
+    Serial.print(" => ");
+    Serial.println(hmac_message);
+
+    Serial.print("Encrypted Data");
+    Serial.print(" => ");
+    Serial.println(encrypted);
     
     // turn LED on:
     digitalWrite(ledPinRed, HIGH);
@@ -208,6 +237,45 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
+
+  String msg = "";
+  for (int i = 0; i < length; i++) {
+    msg += (char)payload[i];
+  }
+
+  if (String(topic) == DHT11_all) {
+    lastEncryptedPayload = msg;
+    Serial.println("Encrypted payload received: " + lastEncryptedPayload);
+
+  } else if (String(topic) == DHT11_HMAC) {
+    lastHMAC = msg;
+    Serial.println("HMAC received: " + lastHMAC);
+
+    // Now verify HMAC
+    if (verify_HMAC(lastEncryptedPayload, lastHMAC)) {
+      String decrypted = aes_decrypt(lastEncryptedPayload);
+
+      // Parse JSON
+      DynamicJsonDocument doc(256);
+      deserializeJson(doc, decrypted);
+
+      float temp = doc["temp"];
+      float hum = doc["hum"];
+      float heat = doc["heat"];
+      float dew = doc["dew"];
+      int comfort = doc["comfort"];
+
+      Serial.println("Decrypted values:");
+      Serial.println("Temp: " + String(temp));
+      Serial.println("Hum: " + String(hum));
+      Serial.println("Heat: " + String(heat));
+      Serial.println("Dew: " + String(dew));
+      Serial.println("Comfort: " + String(comfort));
+
+    } else {
+      Serial.println("HMAC verification failed! Discarding message.");
+    }
+  }
 }
 
 void setup_wifi() {
@@ -252,11 +320,19 @@ void reconnect() {
     Serial.print("Connecting to MQTT...");
     if (client.connect("ESP32_TempPublisher")) {
       Serial.println("Connected!");
-      client.subscribe(humidity_topic);
+
+      Serial.println("***** SUBSCRIPTION OF ENCRYPTED DATA FROM MQTT SERVER****");
+
+      /*client.subscribe(humidity_topic);
       client.subscribe(temperature_topic);
       client.subscribe(heatIndex_topic);
       client.subscribe(dewPoint_topic);
-      client.subscribe(Comfort_topic);
+      client.subscribe(Comfort_topic);*/
+
+      client.subscribe(DHT11_all);
+      client.subscribe(DHT11_HMAC);
+
+
       digitalWrite(ledPinWhite,HIGH);
       delay(100);
       digitalWrite(ledPinWhite, LOW);
