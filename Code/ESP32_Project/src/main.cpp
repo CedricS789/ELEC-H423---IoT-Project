@@ -9,6 +9,9 @@
 #include <AsyncTCP.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
+// ENCRYPTION 
+#include "aes.h"
+#include "Preferences.h"    // Generate the key and 
 
 // MQTT topic set-up
 #define humidity_topic "sensor/DHT11/humidity"
@@ -148,31 +151,29 @@ void getTemperature() {
   Serial.println(" Temp:" + String(g_temp) + " Hum:" + String(g_hum) + " Index:" + String(g_heatIndex) + " Dew:" + String(g_dewPoint) + " " + comfortStatus);
 }
 
+void CypherGeneration(const char* topic, float value) {
+  String plain = String(value);
+  String cipher = aes_encrypt(plain);
+  client.publish(topic, cipher.c_str(), true);
+
+  Serial.print(topic);
+  Serial.print(" => ");
+  Serial.println(cipher);
+}
+
 void publishData(){
   if (!isnan(g_temp) || !isnan(g_hum) || !isnan(g_heatIndex) || !isnan(g_dewPoint) ||!isnan(g_cr)) {
     // char tempString[8];
     // dtostrf(t, 1, 2, tempString);
 
-    Serial.println("***** PUBLISHMENT OF DATA TO MQTT SERVER****");
-    client.publish(humidity_topic, String(g_hum).c_str(),true);
-    Serial.print("Humidity in % : ");
-    Serial.println(String(g_hum).c_str());
+    Serial.println("***** PUBLISHMENT OF ENCRYPTED DATA TO MQTT SERVER****");
 
-    client.publish(temperature_topic, String(g_temp).c_str(),true);
-    Serial.print("Temp in celsius : ");
-    Serial.println(String(g_temp).c_str());
-
-    client.publish(heatIndex_topic, String(g_heatIndex).c_str(),true);
-    Serial.print("Heat index : ");
-    Serial.println(String(g_heatIndex).c_str());
-
-    client.publish(dewPoint_topic, String(g_dewPoint).c_str(),true);
-    Serial.print("Dew point : ");
-    Serial.println(String(g_dewPoint).c_str());
-
-    client.publish(Comfort_topic, String(g_cr).c_str(),true);
-    Serial.print("Comfort : ");
-    Serial.println(String(g_cr).c_str());
+    CypherGeneration(humidity_topic, g_hum);
+    CypherGeneration(temperature_topic, g_temp);
+    CypherGeneration(heatIndex_topic, g_heatIndex);
+    CypherGeneration(dewPoint_topic, g_dewPoint);
+    CypherGeneration(Comfort_topic, g_cr);
+    
     // turn LED on:
     digitalWrite(ledPinRed, HIGH);
     delay(1000);
@@ -332,6 +333,10 @@ void initWebServer(){
 void setup() {
 
   Serial.begin(115200);
+  // Write Key in flash
+  write_key_flash();
+  // Load Key in RAM
+  load_key_flash();
   // initialize the LED pin as an output:
   pinMode(ledPinWhite, OUTPUT);
   pinMode(ledPinRed, OUTPUT);
