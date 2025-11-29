@@ -19,6 +19,7 @@
 #define heatIndex_topic "sensor/DHT11/heatIndex"
 #define dewPoint_topic "sensor/DHT11/dewPoint"
 #define Comfort_topic "sensor/DHT11/Comfort"
+#define Hmac_topic "sensor/DHT11/Hmac"
 
 // Webserver
 
@@ -62,6 +63,7 @@ IPAddress gatewayIP;
 
 // Global Variables:
 float g_temp, g_hum, g_heatIndex, g_dewPoint, g_cr, g_threshold;
+uint8_t AES_KEY [16];
 int g_interval;
 int buttonState = 0;  // variable for reading the pushbutton status
 TaskHandle_t tempTaskHandle = NULL; // Thread pointer
@@ -151,7 +153,7 @@ void getTemperature() {
   Serial.println(" Temp:" + String(g_temp) + " Hum:" + String(g_hum) + " Index:" + String(g_heatIndex) + " Dew:" + String(g_dewPoint) + " " + comfortStatus);
 }
 
-void CypherGeneration(const char* topic, float value) {
+String CypherGeneration(const char* topic, float value) {
   String plain = String(value);
   String cipher = aes_encrypt(plain);
   client.publish(topic, cipher.c_str(), true);
@@ -159,6 +161,17 @@ void CypherGeneration(const char* topic, float value) {
   Serial.print(topic);
   Serial.print(" => ");
   Serial.println(cipher);
+
+  return cipher;
+}
+
+void HMACGeneration(const char* topic,String payload) {
+  String hmac_message = Hmac_encrypt(payload);
+  client.publish(topic, hmac_message.c_str(), true);
+
+  Serial.print(topic);
+  Serial.print(" => ");
+  Serial.println(hmac_message);
 }
 
 void publishData(){
@@ -168,11 +181,16 @@ void publishData(){
 
     Serial.println("***** PUBLISHMENT OF ENCRYPTED DATA TO MQTT SERVER****");
 
-    CypherGeneration(humidity_topic, g_hum);
-    CypherGeneration(temperature_topic, g_temp);
-    CypherGeneration(heatIndex_topic, g_heatIndex);
-    CypherGeneration(dewPoint_topic, g_dewPoint);
-    CypherGeneration(Comfort_topic, g_cr);
+    String payload_hum = CypherGeneration(humidity_topic, g_hum);
+    HMACGeneration(Hmac_topic, payload_hum);
+    String payload_temp = CypherGeneration(temperature_topic, g_temp);
+    HMACGeneration(Hmac_topic, payload_temp);
+    String payload_heat = CypherGeneration(heatIndex_topic, g_heatIndex);
+    HMACGeneration(Hmac_topic, payload_heat);
+    String payload_dew = CypherGeneration(dewPoint_topic, g_dewPoint);
+    HMACGeneration(Hmac_topic, payload_dew);
+    String payload_conf = CypherGeneration(Comfort_topic, g_cr);
+    HMACGeneration(Hmac_topic, payload_conf);
     
     // turn LED on:
     digitalWrite(ledPinRed, HIGH);

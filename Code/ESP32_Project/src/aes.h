@@ -4,13 +4,15 @@
 #include "mbedtls/aes.h"    // AES Accelerator
 #include "esp_system.h"     // Random byte generation
 
+extern uint8_t AES_KEY[16];     // passing the key to h file
+
 Preferences prefs;
 
 void write_key_flash(){
 
-    static const uint8_t AES_KEY [16] = {0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6d, 0x79, 0x20, 0x4b, 0x75, 0x6e, 0x67, 0x20, 0x46, 0x75};
+    static const uint8_t key [16] = {0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6d, 0x79, 0x20, 0x4b, 0x75, 0x6e, 0x67, 0x20, 0x46, 0x75};
     prefs.begin("Encryption",false);
-    prefs.putBytes("Encrypted_AES",AES_KEY,16);
+    prefs.putBytes("Encrypted_AES",key,sizeof(key));
     prefs.end();
 
 }
@@ -18,7 +20,7 @@ void write_key_flash(){
 void load_key_flash(){
 
     prefs.begin("Encryption",false);
-    prefs.getBytes("Encrypted_AES",AES_KEY,16);
+    prefs.getBytes("Encrypted_AES",AES_KEY,sizeof(AES_KEY));
     prefs.end();
 
 }
@@ -80,3 +82,26 @@ String aes_encrypt(const String& plaintext){
 
     return aes_message;
 }
+
+String Hmac_generate(const uint8_t* data, size_t data_len) {
+    uint8_t hmac_output[32]; // SHA256 produces 32 bytes
+    const mbedtls_md_info_t* md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);    // Algo : SHA256
+    
+    mbedtls_md_hmac(md_info, AES_KEY, sizeof(AES_KEY), data, data_len, hmac_output);    // Hashed generated - 32 bytes
+
+    // Base64 encode HMAC for sending over MQTT
+    return text_encoder(hmac_output, sizeof(hmac_output));
+}
+
+String Hmac_encrypt(String payload){
+
+    size_t payload_len = payload.length();
+    uint8_t* payload_byte = (uint8_t*) payload.c_str();
+
+    String Hmac_message = Hmac_generate(payload_byte,payload_len);
+
+    return Hmac_message;
+
+
+}
+
