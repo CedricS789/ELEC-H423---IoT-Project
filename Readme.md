@@ -30,3 +30,7 @@ c. If the same - Keep the data and send to the monitor (webserver)
 # 6. Port Knocking [Amaury]
 
 a. Change port after each packet sending
+
+## Initialization of the ESP32
+
+a. Update the filesystem in platformIO when ESP is connected to load the Webserver in ESP32
