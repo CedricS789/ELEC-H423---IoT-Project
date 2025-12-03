@@ -16,7 +16,7 @@ b. Byte to String function for MQTT server data sending
 a. HMAC function  
 b. Payload + HMAC sending to MQTT  
 
-# 4. AES Decryption [Yuta]
+# 4. AES Decryption DONE [Yuta]
 
 a. String to Binary translation function  
 b. Decryption function  
