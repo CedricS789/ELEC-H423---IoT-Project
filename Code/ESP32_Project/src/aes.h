@@ -32,8 +32,12 @@ String text_encoder(const uint8_t* data, size_t data_len){
     String output = "";
     size_t output_len = 0;
     size_t base64_len = 4 * ((data_len + 2) / 3);                       // Base64 is 33% bigger in memory than byte data - "+2" to ensure ceiling of data/3
+    // SUGGESTION: Increase buffer size by 1 for null terminator safety
+    // unsigned char* base64 = (unsigned char*) malloc(base64_len + 1);
     unsigned char* base64 = (unsigned char*) malloc(base64_len);
 
+    // SUGGESTION: MBEDTLS_BASE64_C seems to be a typo. It should likely be mbedtls_base64_encode
+    // mbedtls_base64_encode(base64, base64_len + 1, &output_len, data, data_len);
     MBEDTLS_BASE64_C(base64,base64_len,&output_len,data,data_len);      // Convert binary to C string
 
     for (int i=0;i<output_len;i++){

@@ -11,6 +11,7 @@
 #include <ArduinoJson.h>
 // ENCRYPTION 
 #include "aes.h"
+#include "hmac_verification.h"
 #include "Preferences.h"    // Generate the key and 
 
 // MQTT topic set-up
