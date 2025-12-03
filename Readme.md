@@ -6,17 +6,17 @@ a. Debouncing button function
 b. Morse code translation  
 c. PBKDF2 implementation   
 
-# 2. AES encryption - DONE [Amaury]
+# 2. ***AES encryption - DONE [Amaury]***
 
 a. AES function  
 b. Byte to String function for MQTT server data sending  
 
-# 3. HMAC - DONE [Amaury]
+# 3. ***HMAC - DONE [Amaury]***
 
 a. HMAC function  
 b. Payload + HMAC sending to MQTT  
 
-# 4. AES Decryption [Yuta]
+# 4. ***AES Decryption - DONE [Yuta]***
 
 a. String to Binary translation function  
 b. Decryption function  
@@ -30,6 +30,8 @@ c. If the same - Keep the data and send to the monitor (webserver)
 # 6. Port Knocking [Amaury]
 
 a. Change port after each packet sending
+
+# 7. Look for counter addition [Amaury]
 
 ## Initialization of the ESP32
 
