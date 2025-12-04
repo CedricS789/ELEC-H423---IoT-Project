@@ -7,6 +7,8 @@
 #include "esp_system.h"     // Random byte generation
 
 extern uint8_t AES_KEY[16];     // passing the key to h file
+extern uint32_t tx_glob_counter;     // passing the counter to h file
+extern uint32_t rx_glob_counter;
 
 Preferences prefs;
 
@@ -16,36 +18,79 @@ void write_key_flash(){
     prefs.begin("Encryption",false);
     prefs.putBytes("Encrypted_AES",key,sizeof(key));
     prefs.end();
-
 }
 
 void load_key_flash(){
-
     prefs.begin("Encryption",false);
     prefs.getBytes("Encrypted_AES",AES_KEY,sizeof(AES_KEY));
     prefs.end();
-
 }
 
-String text_encoder(const uint8_t* data, size_t data_len){
+void write_counter_flash_rx(uint32_t counter){
+    prefs.begin("DOS_Counter_rx",false);
+    prefs.putBytes("Packet_counter",&counter,sizeof(counter));
+    prefs.end();
+}
 
-    String output = "";
+void get_counter_flash_rx(){
+    prefs.begin("DOS_Counter_rx",false);
+    prefs.getBytes("Packet_counter",&rx_glob_counter, sizeof(rx_glob_counter));
+    prefs.end();
+}
+
+void write_counter_flash_tx(uint32_t counter){
+    prefs.begin("DOS_Counter_tx",false);
+    prefs.putBytes("Packet_counter",&counter,sizeof(counter));
+    prefs.end();
+}
+
+void get_counter_flash_tx(){
+    prefs.begin("DOS_Counter_tx",false);
+    prefs.getBytes("Packet_counter",&tx_glob_counter, sizeof(tx_glob_counter));
+    prefs.end();
+}
+
+void reset_rx_counter() {
+    rx_glob_counter = 0; // reset RAM variable
+    prefs.begin("DOS_Counter_tx", false);
+    prefs.putBytes("Packet_counter", &rx_glob_counter, sizeof(rx_glob_counter));
+    prefs.end();
+}
+
+void reset_tx_counter() {
+    tx_glob_counter = 0; // reset RAM variable
+    prefs.begin("DOS_Counter_tx", false);
+    prefs.putBytes("Packet_counter", &tx_glob_counter, sizeof(tx_glob_counter));
+    prefs.end();
+}
+
+String text_encoder(const uint8_t* data, size_t data_len) {
+
     size_t output_len = 0;
-    size_t base64_len = 4 * ((data_len + 2) / 3);                       // Base64 is 33% bigger in memory than byte data - "+2" to ensure ceiling of data/3
-    // SUGGESTION: Increase buffer size by 1 for null terminator safety
-    // unsigned char* base64 = (unsigned char*) malloc(base64_len + 1);
-    unsigned char* base64 = (unsigned char*) malloc(base64_len);
+    // Allocate enough space for Base64 output (4/3 expansion + 1 for null char)
+    size_t base64_len = 4 * ((data_len + 2) / 3);               // Base64 is 33% bigger in memory than byte data - "+2" to ensure ceiling of data/3
 
-    // SUGGESTION: MBEDTLS_BASE64_C seems to be a typo. It should likely be mbedtls_base64_encode
-    // mbedtls_base64_encode(base64, base64_len + 1, &output_len, data, data_len);
-    MBEDTLS_BASE64_C(base64,base64_len,&output_len,data,data_len);      // Convert binary to C string
+    unsigned char* base64 = (unsigned char*) malloc(base64_len + 1);
+    if (!base64) return "";
 
-    for (int i=0;i<output_len;i++){
-        output += (char)base64[i];                                      // Make a Arduino String
+    int ret = mbedtls_base64_encode(                                // Convert binary to C string
+        base64,         // destination buffer
+        base64_len + 1, // buffer size
+        &output_len,    // effective output len
+        data,           // source bytes
+        data_len        // source size
+    );
+
+    if (ret != 0) {
+        free(base64);
+        return "";
     }
 
+    base64[output_len] = '\0';   // null terminate
+
+    String out = String((char*)base64);         // Make a Arduino String
     free(base64);
-    return output;
+    return out;
 }
 
 String aes_encrypt(const String& plaintext){
@@ -54,6 +99,8 @@ String aes_encrypt(const String& plaintext){
     mbedtls_aes_init(&aes);
 
     String aes_message = "";
+
+    uint32_t counter_temp = tx_glob_counter;
 
     size_t input_len = plaintext.length();
     size_t padded_len = (input_len + 15) & ~15;                         // AND logic with 11110000 -> Find the multiple of chunks of 16 bytes
@@ -65,19 +112,28 @@ String aes_encrypt(const String& plaintext){
 
     uint8_t AES_IV[16];
     esp_fill_random(AES_IV,16);
+    String AES_IV_check = text_encoder(AES_IV,16);
+    
+    Serial.print("Check AES_IV key : ");
+    Serial.println(AES_IV_check);
+
+    String AES_check = text_encoder(AES_KEY,16);
+    Serial.print("Check AES key : ");
+    Serial.println(AES_check);
 
     uint8_t aes_IV_copy [16];
     memcpy(aes_IV_copy,AES_IV,16);
 
     mbedtls_aes_setkey_enc(&aes, AES_KEY, 128);
 
-    mbedtls_aes_crypt_cbc(&aes, MBEDTLS_AES_ENCRYPT, padded_len, aes_IV_copy, input_buf, output_buf);
+    mbedtls_aes_crypt_cbc(&aes, MBEDTLS_AES_ENCRYPT, padded_len, AES_IV, input_buf, output_buf);
 
-    size_t final_payload_size = sizeof(aes_IV_copy) + padded_len;
+    size_t final_payload_size = sizeof(aes_IV_copy) + sizeof(counter_temp) + padded_len;
     uint8_t * final_message = (uint8_t *) calloc(1,final_payload_size);
 
     memcpy(final_message, aes_IV_copy, sizeof(aes_IV_copy) );
-    memcpy(final_message + sizeof(aes_IV_copy), output_buf, padded_len);
+    memcpy(final_message + sizeof(aes_IV_copy), &counter_temp, sizeof(counter_temp));
+    memcpy(final_message + sizeof(aes_IV_copy) + sizeof(counter_temp), output_buf, padded_len);
 
     aes_message = text_encoder(final_message,final_payload_size);
 
@@ -101,7 +157,7 @@ bool base64_decode_to_buffer(const String& input, uint8_t** output, size_t* outp
     size_t in_len = input.length();
     // Estimate the maximum size of the decoded data.
     // Base64 encoding expands data by roughly 4/3, so decoded size is ~3/4 of input adding a small extra margin (+4) for safety.
-    size_t buf_len = (in_len * 3) / 4 + 4;
+    size_t buf_len = (in_len * 3 + 3) / 4;
 
     // Allocate a buffer to hold the decoded bytes.
     uint8_t* buf = (uint8_t*) malloc(buf_len);              // AMAU : Not calloc ???
@@ -139,7 +195,7 @@ bool base64_decode_to_buffer(const String& input, uint8_t** output, size_t* outp
 
 // This function match to "main.cpp" so put this function into it. 
 
-String aes_decrypt(const String& ciphertext_b64)
+String aes_decrypt(const String& ciphertext_b64, uint32_t* out_counter_rx)
 {
     // 1) Base64 decode: ciphertext_b64 -> [IV(16 bytes) || CIPHERTEXT]
     uint8_t* decoded = nullptr;
@@ -162,8 +218,26 @@ String aes_decrypt(const String& ciphertext_b64)
     uint8_t iv[16];
     memcpy(iv, decoded, 16);
 
-    size_t cipher_len = decoded_len - 16;
-    uint8_t* cipher = decoded + 16;
+    uint32_t counter_rx;
+    memcpy(&counter_rx, decoded + 16, sizeof(uint32_t));
+
+    uint32_t rx_last_counter = rx_glob_counter;
+
+    if (counter_rx <= rx_glob_counter) {
+        Serial.println("Replay detected");
+        free(decoded);
+        return String("");
+    } else {
+        rx_glob_counter = counter_rx;
+        write_counter_flash_rx(rx_glob_counter);
+    }
+
+    if (out_counter_rx != nullptr){
+        *out_counter_rx = counter_rx;
+    }
+
+    size_t cipher_len = decoded_len - 16 - sizeof(uint32_t);
+    uint8_t* cipher = decoded + 16 + sizeof(uint32_t);
 
     // 3) Perform AES-128-CBC decryption using mbedTLS.
 
@@ -248,7 +322,13 @@ String Hmac_encrypt(String payload){
     String Hmac_message = Hmac_generate(payload_byte,payload_len);
 
     return Hmac_message;
-
-
 }
 
+// Function to verify if the received HMAC matches the calculated HMAC for the payload
+bool verify_HMAC(String payload, String received_hmac) {
+    // Generate HMAC for the received payload using the shared key (inside Hmac_encrypt)
+    String calculated_hmac = Hmac_encrypt(payload);
+    
+    // Compare the calculated HMAC with the received HMAC
+    return calculated_hmac.equals(received_hmac);
+}

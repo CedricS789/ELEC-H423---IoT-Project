@@ -11,7 +11,6 @@
 #include <ArduinoJson.h>
 // ENCRYPTION 
 #include "aes.h"
-#include "hmac_verification.h"
 #include "Preferences.h"    // Generate the key and 
 
 // MQTT topic set-up
@@ -68,6 +67,8 @@ IPAddress gatewayIP;
 // Global Variables:
 float g_temp, g_hum, g_heatIndex, g_dewPoint, g_cr, g_threshold;
 uint8_t AES_KEY [16];
+uint32_t rx_glob_counter;
+uint32_t tx_glob_counter;
 int g_interval;
 int buttonState = 0;  // variable for reading the pushbutton status
 String lastEncryptedPayload = "";
@@ -159,44 +160,12 @@ void getTemperature() {
   Serial.println(" Temp:" + String(g_temp) + " Hum:" + String(g_hum) + " Index:" + String(g_heatIndex) + " Dew:" + String(g_dewPoint) + " " + comfortStatus);
 }
 
-String CypherGeneration(const char* topic, float value) {
-  String plain = String(value);
-  String cipher = aes_encrypt(plain);
-  client.publish(topic, cipher.c_str(), true);
-
-  Serial.print(topic);
-  Serial.print(" => ");
-  Serial.println(cipher);
-
-  return cipher;
-}
-
-void HMACGeneration(const char* topic,String payload) {
-  String hmac_message = Hmac_encrypt(payload);
-  client.publish(topic, hmac_message.c_str(), true);
-
-  Serial.print(topic);
-  Serial.print(" => ");
-  Serial.println(hmac_message);
-}
-
 void publishData(){
   if (!isnan(g_temp) || !isnan(g_hum) || !isnan(g_heatIndex) || !isnan(g_dewPoint) ||!isnan(g_cr)) {
     // char tempString[8];
     // dtostrf(t, 1, 2, tempString);
 
     Serial.println("***** PUBLISHMENT OF ENCRYPTED DATA TO MQTT SERVER****");
-
-    /*String payload_hum = CypherGeneration(humidity_topic, g_hum);
-    HMACGeneration(Hmac_topic, payload_hum);
-    String payload_temp = CypherGeneration(temperature_topic, g_temp);
-    HMACGeneration(Hmac_topic, payload_temp);
-    String payload_heat = CypherGeneration(heatIndex_topic, g_heatIndex);
-    HMACGeneration(Hmac_topic, payload_heat);
-    String payload_dew = CypherGeneration(dewPoint_topic, g_dewPoint);
-    HMACGeneration(Hmac_topic, payload_dew);
-    String payload_conf = CypherGeneration(Comfort_topic, g_cr);
-    HMACGeneration(Hmac_topic, payload_conf);*/
 
     DynamicJsonDocument doc(256);
     doc["temp"] = g_temp;
@@ -207,6 +176,12 @@ void publishData(){
 
     String payload;
     serializeJson(doc, payload);
+
+    Serial.print("Sending json doc");
+    Serial.println(payload);
+
+    tx_glob_counter++;
+    write_counter_flash_tx(tx_glob_counter);
 
     String encrypted = aes_encrypt(payload);
     String hmac_message = Hmac_encrypt(encrypted);
@@ -229,7 +204,23 @@ void publishData(){
   }
 }
 
+bool ignoreFirstPayload = true;
+bool ignoreFirstHMAC = true;
+
 void callback(char* topic, byte* payload, unsigned int length) {
+
+  if (String(topic) == DHT11_all && ignoreFirstPayload) {
+        Serial.println("Ignoring first retained payload");
+        ignoreFirstPayload = false;
+        return;
+  }
+
+  if (String(topic) == DHT11_HMAC && ignoreFirstHMAC) {
+        Serial.println("Ignoring first retained HMAC");
+        ignoreFirstHMAC = false;
+        return;
+  }
+  
   Serial.print("Message arrived on topic: ");
   Serial.println(topic);
 
@@ -246,19 +237,27 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (String(topic) == DHT11_all) {
     lastEncryptedPayload = msg;
-    Serial.println("Encrypted payload received: " + lastEncryptedPayload);
 
   } else if (String(topic) == DHT11_HMAC) {
     lastHMAC = msg;
-    Serial.println("HMAC received: " + lastHMAC);
 
-    // HMAC Verification
+    // Now verify HMAC
     if (verify_HMAC(lastEncryptedPayload, lastHMAC)) {
-      String decrypted = aes_decrypt(lastEncryptedPayload);
+      uint32_t decrypted_counter = 0;
+      String decrypted = aes_decrypt(lastEncryptedPayload, &decrypted_counter);
+
+      
+      if (decrypted.length() == 0) {
+          Serial.println("Received packet is invalid or replayed. Discarding.");
+          return;  // Stop further processing
+      }
 
       // Parse JSON
       DynamicJsonDocument doc(256);
       deserializeJson(doc, decrypted);
+
+      Serial.println("Decrypted json doc:");
+      Serial.println(decrypted);
 
       float temp = doc["temp"];
       float hum = doc["hum"];
@@ -272,13 +271,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       Serial.println("Heat: " + String(heat));
       Serial.println("Dew: " + String(dew));
       Serial.println("Comfort: " + String(comfort));
-
-      // HMAC Verification - Update global variables to be displayed by the webserver
-      g_temp = temp;
-      g_hum = hum;
-      g_heatIndex = heat;
-      g_dewPoint = dew;
-      g_cr = comfort;
+      Serial.println("Counter: " + String(decrypted_counter));
 
     } else {
       Serial.println("HMAC verification failed! Discarding message.");
@@ -439,6 +432,17 @@ void setup() {
   write_key_flash();
   // Load Key in RAM
   load_key_flash();
+  // Reset counters properly
+  tx_glob_counter = 0;
+  rx_glob_counter = 0;
+
+  write_counter_flash_tx(tx_glob_counter);
+  write_counter_flash_rx(rx_glob_counter);
+  
+  // Get the counter
+  get_counter_flash_tx();
+  // Get the counter
+  get_counter_flash_rx();
   // initialize the LED pin as an output:
   pinMode(ledPinWhite, OUTPUT);
   pinMode(ledPinRed, OUTPUT);
