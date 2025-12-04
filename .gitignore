@@ -25,4 +25,5 @@
 *.vrb
 *.xdy
 *.tdo
+*.run.xml
 _minted*
