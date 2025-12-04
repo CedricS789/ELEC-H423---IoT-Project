@@ -29,6 +29,7 @@ public:
 
 // Mock Hmac_encrypt function
 // In reality, this would use the AES key. For testing, we'll just return a predictable "hash".
+// In here we are rewritting the Hmac_encrypt function inside the verify_HMAC function
 String Hmac_encrypt(String payload) {
     return String("HMAC_" + payload.s);
 }
