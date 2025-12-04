@@ -26,4 +26,5 @@
 *.xdy
 *.tdo
 *.run.xml
+*.bcf
 _minted*
