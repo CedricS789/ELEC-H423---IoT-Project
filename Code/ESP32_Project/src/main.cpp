@@ -252,7 +252,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     lastHMAC = msg;
     Serial.println("HMAC received: " + lastHMAC);
 
-    // Now verify HMAC
+    // HMAC Verification
     if (verify_HMAC(lastEncryptedPayload, lastHMAC)) {
       String decrypted = aes_decrypt(lastEncryptedPayload);
 
@@ -272,6 +272,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
       Serial.println("Heat: " + String(heat));
       Serial.println("Dew: " + String(dew));
       Serial.println("Comfort: " + String(comfort));
+
+      // HMAC Verification - Update global variables to be displayed by the webserver
+      g_temp = temp;
+      g_hum = hum;
+      g_heatIndex = heat;
+      g_dewPoint = dew;
+      g_cr = comfort;
 
     } else {
       Serial.println("HMAC verification failed! Discarding message.");
