@@ -31,7 +31,7 @@ c. If the same - Keep the data and send to the monitor (webserver)
 
 a. Change port after each packet sending
 
-## 7. Look for counter addition [Amaury]
+## 7. ***Look for counter addition - DONE [Amaury]***
 
 # Initialization of the ESP32
 
