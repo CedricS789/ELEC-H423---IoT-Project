@@ -1,6 +1,6 @@
 ## MAIN STEP TO DO
 
-# 1. Key user generation with Morse code [Loic]
+# 1. Key user generation with Morse code DONE [Loic]
 
 a. Debouncing button function  
 b. Morse code translation  
@@ -30,5 +30,9 @@ c. If the same - Keep the data and send to the monitor (webserver)
 # 6. Port Knocking [Amaury]
 
 a. Change port after each packet sending
+
+# 7. Counter DONE [Amaury]
+
+a. Counter addition to counter message replay
 
 
