@@ -2,5 +2,46 @@
 
 \section{Data flow diagram}
 
+In the first chapter, we discussed about the project concept where one ESP32 is used as a data publisher mimicking the data collection of a room
+we would like the thermal conditions to be controlled via a command center, which is the alias for our second ESP32. \\
+The acquised data are sent from our ESP32 "publisher" to a MQTT server, installed on our machine for the example.  The second ESP32 is subscribed
+to the MQTT server, receiving the published data and in charge of monitoring - controlling the room conditions.  Those data are displayed
+on another MQTT server able to plot data evolution. \newline
+The data flow is shown on the figure ~\ref{fig:Diagram_flow}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../pic/Diagram_flow.PNG}
+    \caption{Data flow diagram}
+    \label{fig:Diagram_flow}
+\end{figure}
+
+For completeness, we will consider our data as highly sensitive - with strict security needs - where the room thermal regulation cannot be 
+vulnerable to seizing control attacks or unstablizing temperature attacks for example. \\
+We would therefore need to mitigate all types of attack by integrating a security strategy considering the ressources constraints dependent on 
+the hardware used - in our case, the ESP32 devkit with :
+
+\begin{enumerate}
+    \item 4MB flash memory
+    \item 520KB RAM
+    \item Dual-core 32-bit processor
+\end{enumerate}
+
+Thus HTTPS / TLS protocol are not adapted for our devices and key cryptoghraphy containing complex mathematical operation like RSA cannot 
+be implemented.  This suitable security strategy counter acting the whole span of threats while fitting into the hardware
+ and meeting the decyphering process speed will be discussed in the last chapter namely the "Security mitigation".
+
+Before treating about the security strategy, we would need to identify the security threats our model needs to deal with.  The STRIDE model will
+be used in this perspective in the next section.
+
+Figure ~\ref{fig:Diagram_flow_STRIDE}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../pic/Diagram_flow_STRIDE.PNG}
+    \caption{STRIDE model verification for project data flow}
+    \label{fig:Diagram_flow_STRIDE}
+\end{figure}
+
+
 \section{STRIDE Threat Model}
 
