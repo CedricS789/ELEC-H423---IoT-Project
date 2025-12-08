@@ -8,7 +8,7 @@ with a robust encryption system
 \subsection*{Hardware components}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{Report/Pic/ESP32_schematic.png}
+    \includegraphics[width=0.45\textwidth]{../pic/ESP32_schematic.png}
     \caption{ESP32 schematic}
 \end{figure}
 
@@ -45,6 +45,7 @@ we would like the thermal conditions to be controlled via a command center, whic
 The acquised data are sent from our ESP32 "publisher" to a MQTT server, installed on our machine for the example.  The second ESP32 is subscribed
 to the MQTT server, receiving the published data and in charge of monitoring - controlling the room conditions.  Those data are displayed
 on another MQTT server able to plot data evolution.}
+
 
 
 
