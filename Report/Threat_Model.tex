@@ -6,7 +6,7 @@ In the first chapter, we discussed about the project concept where one ESP32 is 
 we would like the thermal conditions to be controlled via a command center, which is the alias for our second ESP32. \\
 The acquised data are sent from our ESP32 "publisher" to a MQTT server, installed on our machine for the example.  The second ESP32 is subscribed
 to the MQTT server, receiving the published data and in charge of monitoring - controlling the room conditions.  Those data are displayed
-on another MQTT server able to plot data evolution. \newline
+on another MQTT server able to plot data evolution. \textbf{Speak about TCP protocol ? - first handshake} \newline
 The data flow is shown on the figure ~\ref{fig:Diagram_flow}
 
 \begin{figure}[H]
@@ -45,3 +45,21 @@ Figure ~\ref{fig:Diagram_flow_STRIDE}
 
 \section{STRIDE Threat Model}
 
+\textbf{Take back the STRIDE model used in the security powerpoint and explain each category}
+
+\begin{enumerate}
+    \item Spoofing
+    \item Tampering
+    \item Repudation
+    \item Info Disclosure
+    \item Denials of service
+    \item Elevation of privilege
+\end{enumerate}
+
+Figure ~\ref{fig:STRIDE}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../pic/STRIDE.PNG}
+    \caption{STRIDE model and threats localization}
+    \label{fig:STRIDE}
+\end{figure}

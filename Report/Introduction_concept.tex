@@ -4,6 +4,14 @@
 
 \section{Concept}
 
+This is what I wrote in the Threat model section  - you can take it as reference to explain the concept more in details with maybe a figure.
+
+\textit{In the first chapter, we discussed about the project concept where one ESP32 is used as a data publisher mimicking the data collection of a room
+we would like the thermal conditions to be controlled via a command center, which is the alias for our second ESP32. \\
+The acquised data are sent from our ESP32 "publisher" to a MQTT server, installed on our machine for the example.  The second ESP32 is subscribed
+to the MQTT server, receiving the published data and in charge of monitoring - controlling the room conditions.  Those data are displayed
+on another MQTT server able to plot data evolution.}
+
 
 
 
