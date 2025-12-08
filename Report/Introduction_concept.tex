@@ -1,6 +1,40 @@
 \chapter{Introduction and concept}
 
 \section{Device}
+The prototype is built around two ESP32 DevKit boards and two laptops running
+the MQTT broker and visualization tools. The goal is to monitor thermal conditions remotely
+with a robust encryption system
+
+\subsection*{Hardware components}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\textwidth]{Report/Pic/ESP32_schematic.png}
+    \caption{ESP32 schematic}
+\end{figure}
+
+
+\begin{itemize}
+    \item \textbf{Publisher ESP32}  
+    This board collects the environmental data in the room under test. And It sends the information to the MQTT server with encryption. It is connected to:
+    \begin{itemize}
+        \item a DHT11 temperature and humidity sensor,
+        \item a push button used later for entering the Morse code,
+        \item two LEDs that provide simple feedback about the system state
+              (Wi‑Fi/MQTT connection, data transmission).
+    \end{itemize}
+
+    \item \textbf{Subscriber ESP32}  
+    This second board plays the role of a remote command center. It receives the encrypted measurements from the MQTT broker, verifies the integrity and authenticity of the messages, and decrypts the payload. The same board also runs a small web server that exposes the current temperature and humidity to any device on the local network.
+
+    \item \textbf{Computers running the MQTT broker}  
+    Laptops are used to host the Mosquitto MQTT brokers.
+    Both ESP32 boards connect to this broker over Wi‑Fi through a local access point (a smartphone hotspot in our case). The computer can also run additional tools for data visualisation, such as an MQTT dashboard or plotting software.
+\end{itemize}
+
+\subsection*{Roles of the devices}
+The \textbf{Publisher ESP32} works as a sensor node installed in the room. It periodically reads the DHT11 sensor, builds a JSON payload, encrypts this payload and sends it to the MQTT broker.
+The \textbf{Subscriber ESP32} works as the monitored unit of the room. It subscribes to the encrypted topics, checks the HMAC, detects replay attacks using a counter, decrypts the data and republishes a plain version for visualisation. In this way the security mechanisms can be tested without modifying the MQTT broker itself.
+
 
 \section{Concept}
 
@@ -11,6 +45,7 @@ we would like the thermal conditions to be controlled via a command center, whic
 The acquised data are sent from our ESP32 "publisher" to a MQTT server, installed on our machine for the example.  The second ESP32 is subscribed
 to the MQTT server, receiving the published data and in charge of monitoring - controlling the room conditions.  Those data are displayed
 on another MQTT server able to plot data evolution.}
+
 
 
 
