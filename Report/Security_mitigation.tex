@@ -13,8 +13,6 @@
     \item Port knocking implementation to complexify the sniffing (changing port)
 \end{enumerate}
 
-
-
 \section{Security scheme}
 
 Figure ~\ref{fig:Encrypted_key}
@@ -89,7 +87,7 @@ The figure ~\ref{fig:PBKDF2_result} shows the following results :
 \subsection{Encrypted data publishment}
 
 Once the plain key ($\text{Key}_\text{plain}$) has been generated, the thermal data can be encrypted with AES-128 bits encryption.
-The figure ~\ref{fig:Encrypted_data_publish} shows the details fo the encryption functionality and the results of the payload encryption.
+The figure ~\ref{fig:Encrypted_data_publish} shows the details fo the encryption functionality and the results of the encrypted payload.
 
 \begin{enumerate}
     \item Thermal conditions gathered in a java script object notation (readable text to send structured data)
@@ -100,32 +98,42 @@ The figure ~\ref{fig:Encrypted_data_publish} shows the details fo the encryption
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{../pic/Encrypted_data_publish.PNG}
+    \includegraphics[width=0.8\textwidth]{../pic/Encrypted_data_publish_2.PNG}
     \caption{Encrypted data publishment on MQTT server}
     \label{fig:Encrypted_data_publish}
 \end{figure}
 
-\subsection{Encrypted data publishment}
+\subsection{Decryption at the subscriber}
 
-Figure ~\ref{fig:Decrypted_data_subscriber}
+The second ESP32 subscribed to the same MQTT server - listening to the same port as the publisher - receives the cypher message containing
+ HMAC signature and encrypted payload.  From the inverse encryption process, the cypher is decrypted and the result details are shown in the 
+figure ~\ref{fig:Subscription_MQTT} and ~\ref{fig:Decrypted_data_subscriber}.
+
+\begin{enumerate}
+    \item Encrypted message and HMAC signature sent to the subscriber
+    \item Payload decrypted with the plain key (decrypted at the subscriber with the same secret morse code)
+    \item Display of the counter countering replay attacks.
+\end{enumerate}
+
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{../pic/Decrypted_data_subscriber.PNG}
+    \includegraphics[width=0.9\textwidth]{../pic/Subscription_MQTT.PNG}
+    \caption{Subscription to MQTT server topics}
+    \label{fig:Subscription_MQTT}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../pic/Decrypted_data_subscriber.PNG}
     \caption{Decryption verification}
     \label{fig:Decrypted_data_subscriber}
 \end{figure}
 
-\subsection{Replay detection}
-
-Figure ~\ref{fig:Replay_detection}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.5\textwidth]{../pic/Replay_detection.PNG}
-    \caption{Counter implementation for replay counter strategy}
-    \label{fig:Replay_detection}
-\end{figure}
-
 \subsection{Port Knocking}
+
+To complete the results section, the terminal shows the results got during data sending experiment from the subscriber side. \\
+One can observe that the port is switching once the packet has been received - \textbf{Switching Subscribed port : 1900}.  This port switch
+simulates a synchronised port switching between the publisher - MQTT server and the subscriber.
 
 Figure ~\ref{fig:Port_Knocking_visualization}
 \begin{figure}[H]
@@ -147,35 +155,6 @@ Figure ~\ref{fig:Port_Knocking_visualization}
 \end{enumerate}
 
 
-In this section, we discuss the security assumptions and the remaining limitations of our implementation.
-
-\subsection*{Hardware trust assumptions}
-In our design, we "assume" that the MQTT broker runs on a trusted computer and that the ESP32 flash memory is protected at the hardware level. Under this assumption, the attackers can observe and modify the wireless traffic, but they cannot directly read or overwrite the keys stored in flash or the files of the MQTT server.
-
-If this assumption is violated (for instance, if an attacker obtains physical access to the board and can dump the flash contents), our scheme would not be sufficient: the long–term AES key and the PBKDF2 parameters could be extracted, and all traffic could be decrypted
-offline.
-
-\subsection*{Port knocking and synchronisation}
-
-As an additional defence in depth, we implemented a form of \emph{port knocking} on the ESP32 side. Instead of always sending encrypted MQTT traffic to a single fixed port, the publisher and subscriber cycle through a predefined list of ports (1883 $\rightarrow$ 1900 $\rightarrow$ 1925 $\rightarrow$ 1960 $\rightarrow \dots$). After each encrypted payload is sent and acknowledged, both ESP32 devices update an internal index and reconnect to the broker using the next port in the sequence. This makes passive sniffing slightly more difficult, because an attacker cannot simply capture all traffic by listening on a single port. 
-
-In a \emph{strict} port‑knocking design, the MQTT broker would enforce the same sequence: the server would initially keep all application ports closed and only open the next port in 
-the list after a correct "knock" on the current one. Such behaviour requires the synchronisation between the client and the server. If the broker does not follow the same sequence, an attacker who listens on all open ports can still observe every packet.
-
-In our implementation the Mosquitto broker is configured to listen on all ports of the sequence at the same time, without enforcing any ordering. As a consequence, our port‑switching mechanism should prevent from a naive sniffing. A possible improvement for future work would be to move the port‑knocking logic to the server side so that only the correct sequence of ports is accepted and all other connection attempts are rejected.7
-
-\subsection*{Side–channel leakage}
-
-The implemented counter‑measures mainly address network‑level threats such as spoofing, tampering and replay. On a small micro‑controller there are additional side‑channel attacks: an attacker could measure execution time, count low‑level instructions or observe power consumption in order to recover information about the AES key.
-
-Protecting against these attacks is outside the scope of this work. In practice, defending against side channels would require constant‑time cryptographic implementations and specific hardware counter‑measures, which are not provided in our prototype.
-
-\subsection*{Security level of AES‑128}
-
-The payload is encrypted with AES in CBC mode with a 128‑bit key. From a purely cryptographic point of view, AES‑128 is still considered secure for most applications and no practical attack is known that breaks the algorithm with a realistic amount of resources.
-
-However, for highly sensitive data and long‑term confidentiality, standards often recommend larger keys (e.g. AES‑256) and additional protections such as key rotation.  In our project the main limitations are therefore not the theoretical strength of AES‑128 itself but the way keys are stored, derived and handled on low‑cost IoT hardware.
 
 \section{Conclusion}
-
 
