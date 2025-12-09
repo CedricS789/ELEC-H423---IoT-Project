@@ -147,6 +147,35 @@ Figure ~\ref{fig:Port_Knocking_visualization}
 \end{enumerate}
 
 
+In this section, we discuss the security assumptions and the remaining limitations of our implementation.
+
+\subsection*{Hardware trust assumptions}
+In our design, we "assume" that the MQTT broker runs on a trusted computer and that the ESP32 flash memory is protected at the hardware level. Under this assumption, the attackers can observe and modify the wireless traffic, but they cannot directly read or overwrite the keys stored in flash or the files of the MQTT server.
+
+If this assumption is violated (for instance, if an attacker obtains physical access to the board and can dump the flash contents), our scheme would not be sufficient: the long–term AES key and the PBKDF2 parameters could be extracted, and all traffic could be decrypted
+offline.
+
+\subsection*{Port knocking and synchronisation}
+
+As an additional defence in depth, we implemented a form of \emph{port knocking} on the ESP32 side. Instead of always sending encrypted MQTT traffic to a single fixed port, the publisher and subscriber cycle through a predefined list of ports (1883 $\rightarrow$ 1900 $\rightarrow$ 1925 $\rightarrow$ 1960 $\rightarrow \dots$). After each encrypted payload is sent and acknowledged, both ESP32 devices update an internal index and reconnect to the broker using the next port in the sequence. This makes passive sniffing slightly more difficult, because an attacker cannot simply capture all traffic by listening on a single port. 
+
+In a \emph{strict} port‑knocking design, the MQTT broker would enforce the same sequence: the server would initially keep all application ports closed and only open the next port in 
+the list after a correct "knock" on the current one. Such behaviour requires the synchronisation between the client and the server. If the broker does not follow the same sequence, an attacker who listens on all open ports can still observe every packet.
+
+In our implementation the Mosquitto broker is configured to listen on all ports of the sequence at the same time, without enforcing any ordering. As a consequence, our port‑switching mechanism should prevent from a naive sniffing. A possible improvement for future work would be to move the port‑knocking logic to the server side so that only the correct sequence of ports is accepted and all other connection attempts are rejected.7
+
+\subsection*{Side–channel leakage}
+
+The implemented counter‑measures mainly address network‑level threats such as spoofing, tampering and replay. On a small micro‑controller there are additional side‑channel attacks: an attacker could measure execution time, count low‑level instructions or observe power consumption in order to recover information about the AES key.
+
+Protecting against these attacks is outside the scope of this work. In practice, defending against side channels would require constant‑time cryptographic implementations and specific hardware counter‑measures, which are not provided in our prototype.
+
+\subsection*{Security level of AES‑128}
+
+The payload is encrypted with AES in CBC mode with a 128‑bit key. From a purely cryptographic point of view, AES‑128 is still considered secure for most applications and no practical attack is known that breaks the algorithm with a realistic amount of resources.
+
+However, for highly sensitive data and long‑term confidentiality, standards often recommend larger keys (e.g. AES‑256) and additional protections such as key rotation.  In our project the main limitations are therefore not the theoretical strength of AES‑128 itself but the way keys are stored, derived and handled on low‑cost IoT hardware.
 
 \section{Conclusion}
+
 
