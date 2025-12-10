@@ -1,6 +1,14 @@
 {
     "latex-workshop.formatting.latex": "latexindent",
     "[latex]": {
-        "editor.formatOnSave": false
-    }
+        "editor.formatOnSave": false,
+        "editor.wordWrap": "on",
+        "editor.rulers": [],
+        "editor.minimap.enabled": false
+    },
+    "latex-workshop.view.pdf.viewer": "tab",
+    "latex-workshop.synctex.afterBuild.enabled": true,
+    "latex-workshop.view.pdf.internal.synctex.keybinding": "double-click",
+    "latex-workshop.latex.autoBuild.run": "onSave",
+    "editor.wordWrap": "on"
 }

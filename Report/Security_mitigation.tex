@@ -13,10 +13,17 @@
     \item Port knocking implementation to complexify the sniffing (changing port)
 \end{enumerate}
 
+\newpage
 \section{Security scheme}
 
 The security scheme is designed to protect the IoT communication channel against information disclosure, tampering, and repudiation. 
-We implemented a custom application-layer security protocol that ensures data privacy and integrity before it even reaches the network stack.
+We implemented an application-layer security protocol that ensures data privacy and integrity before it even reaches the network stack.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{../pic/Security_pipeline.PNG}
+    \caption{Security strategy integration in the project data flow}
+    \label{fig:Security_pipeline}
+\end{figure}
 
 \subsubsection{Key Generation and Management}
 To avoid storing the master encryption key in plaintext within the source code or the flash memory, 
@@ -25,11 +32,18 @@ This password is then passed through the PBKDF2 algorithm using HMAC-SHA256 to d
 The actual encryption key, which is stored in the non-volatile storage in an encrypted form, is then decrypted using this session key. 
 The decrypted key is stored only in RAM and used for the duration of the session.
 
+
 \subsubsection{Encryption and Confidentiality}
 The sensor data, including temperature and humidity, is formatted into a JSON structure. 
-This payload is then encrypted using AES-128 in CBC mode. For each message, 
-a fresh Initialization Vector (IV) is randomly generated to ensure that the same data results in different ciphertexts every time. 
+This payload is then encrypted using AES-128. For each message, 
+a fresh Initialization Vector is randomly generated to ensure that the same data results in different ciphertexts every time. 
 The payload is then encrypted using the session key derived during the startup phase.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{../pic/Encrypted_key.PNG}
+    \caption{Encrypted key generation}
+    \label{fig:Encrypted_key}
+\end{figure}
 
 \subsubsection{Authentication verification and Integrity}
 To ensure the authenticity and integrity of the message, an HMAC-SHA256 signature is generated. 
@@ -49,21 +63,7 @@ As an additional layer of obfuscation, the system implements a synchronized port
 Both the publisher and subscriber cycle through a predefined sequence of MQTT broker ports. After a successful transmission, 
 both devices switch to the next port in the sequence, making continuous passive sniffing more difficult for an attacker listening on a single port.
 
-Figure ~\ref{fig:Encrypted_key}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.7\textwidth]{../pic/Encrypted_key.PNG}
-    \caption{Encrypted key generation}
-    \label{fig:Encrypted_key}
-\end{figure}
 
-Figure ~\ref{fig:Security_pipeline}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.7\textwidth]{../pic/Security_pipeline.PNG}
-    \caption{Security strategy integration in the project data flow}
-    \label{fig:Security_pipeline}
-\end{figure}
 
 \section{Results}
 
