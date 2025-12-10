@@ -11,7 +11,7 @@ The data flow is shown on the figure ~\ref{fig:Diagram_flow}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{../pic/Diagram_flow.PNG}
+    \includegraphics[width=0.8\textwidth]{Pic/Diagram_flow.PNG}
     \caption{Data flow diagram}
     \label{fig:Diagram_flow}
 \end{figure}
@@ -37,7 +37,7 @@ be used in this perspective in the next section.
 Figure ~\ref{fig:Diagram_flow_STRIDE}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{../pic/Diagram_flow_STRIDE.PNG}
+    \includegraphics[width=0.8\textwidth]{Pic/Diagram_flow_STRIDE.PNG}
     \caption{STRIDE model verification for project data flow}
     \label{fig:Diagram_flow_STRIDE}
 \end{figure}
@@ -45,21 +45,34 @@ Figure ~\ref{fig:Diagram_flow_STRIDE}
 
 \section{STRIDE Threat Model}
 
-\textbf{Take back the STRIDE model used in the security powerpoint and explain each category}
+The STRIDE threat model is an approach used to identify and categorize potential security threats and vulnerabilities in software systems. Developed by Microsoft, the acronym STRIDE represents six main categories of threats. These figures below illustrate all categories, their description and how they are mitigated in the project.\\
 
-\begin{enumerate}
-    \item Spoofing
-    \item Tampering
-    \item Repudation
-    \item Info Disclosure
-    \item Denials of service
-    \item Elevation of privilege
-\end{enumerate}
-
-Figure ~\ref{fig:STRIDE}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{../pic/STRIDE.PNG}
-    \caption{STRIDE model and threats localization}
-    \label{fig:STRIDE}
+\begin{figure}[h]
+\includegraphics[width=0.7\textwidth]{Pic/STRIDE.PNG}
+\caption{STRIDE model and threats localization}
+\label{fig:STRIDE}
 \end{figure}
+
+\begin{table}[h!]
+    \centering
+    \caption{STRIDE Threat Model and Security Mitigations for ESP32-MQTT Setup}
+    \label{tab:stride_mitigation}
+    \begin{tabular}{>{\raggedright\arraybackslash}p{1.7cm} >{\raggedright\arraybackslash}p{3cm} >{\raggedright\arraybackslash}p{3.5cm} >{\raggedright\arraybackslash}p{5.5cm}}
+        \toprule
+        \textbf{STRIDE Category} & \textbf{Threat Description} & \textbf{Attacked Component/Data Flow} & \textbf{Security Mitigation (Protocol)} \\
+        \midrule
+        \textbf{Spoofing} (Authentication) & An attacker impersonates a legitimate ESP32 device or the MQTT Server to inject false data or commands. & ESP32 $\leftrightarrow$ Server Communication & \textbf{Authentication} using a \textbf{Message Authentication Code (MAC)}, such as HMAC-SHA256, to verify the sender's identity with a shared secret key derived from PBKDF2. \\
+        \midrule
+        \textbf{Tampering} (Integrity) & Data (sensor readings) is intercepted and modified while in transit over the network. & Sensor Data $\to$ Server, Control Commands & \textbf{Integrity} enforced by the MAC (HMAC-SHA256). The receiver recalculates and compares the MAC to detect any alteration. \\
+        \midrule
+        \textbf{Information Disclosure} (Confidentiality) & An attacker eavesdrops on the network and reads sensitive data (Temperature,Humidity...). & All Communication over the Network & \textbf{Encryption} of the MQTT payload using AES-128. An additional layer is provided by Port Knocking to make sniffing and channel monitoring harder. \\
+        \midrule
+        \textbf{Denial of Service (DoS)} & An attacker floods the ESP32 or MQTT server with excessive traffic or requests, consuming resources. & ESP32 or Server Resources & \textbf{Rate-limiting} controls on the MQTT broker (assumption) and the use of Port Knocking to obscure the communication channel, reducing the window for targeted attacks. \\
+        \midrule
+        \textbf{Repudiation} (Non-Repudiation) & A legitimate device or the server denies having sent a critical or malicious message. & All Communication & The HMAC proves the message's origin from the authentic sender, and the counter ensures a definitive record of sequential messages, preventing the sender from denying transmission. \\
+        \midrule
+        \textbf{Elevation of Privilege} (Authorization) & A compromised device gains access to MQTT topics or capabilities it should not have permission for. & ESP32 $\leftrightarrow$ Server Communication, MQTT Topic Subscriptions & Strict Authorization controls on the MQTT broker (assumption) and the requirement to correctly decrypt the secret key via the Morse code sequence before publishing data. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+

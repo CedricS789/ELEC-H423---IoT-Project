@@ -1,0 +1,16 @@
+\chapter{Conclusion}
+
+This project successfully developed and implemented a functional and highly secure Internet of Things (IoT) setup using two ESP32 microcontrollers communicating via an MQTT broker. We met all core requirements, including reading sensor data (temperature and humidity), enabling push-button control, and facilitating data exchange with a centralized server. On top of the core requirements we add some features while implementing the setup: 
+room comfort estimation, morse password to start the communication, counters to mark each payload and an external server to publish the data.\\
+We successfully achieved the required security properties and we added some other contributions:
+\begin{itemize}
+    \item Confidentiality: Achieved by encrypting the entire data payload using AES.
+    \item Integrity and Authentication: Ensured through the use of an HMAC signature generated from a secret key and verified by the recipient.
+    \item Our contribution to secure key storage involved deriving the key through PBKDF2 using a secret Morse Code input from the push button. This added a crucial layer of physical security and user-based authentication for the initial key decryption.
+\end{itemize}
+\\
+\textbf{Future Work}
+\begin{itemize}
+    \item Implementing true hardware-level security, such as leveraging the ESP32's Flash Encryption features to ensure that stored key cannot be read at all.
+    \item Implement Port knocking with the MQTT server such that during the transmission of one packet the MQTT reads only the designated port.
+\end{itemize}
