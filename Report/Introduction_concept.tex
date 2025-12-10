@@ -38,18 +38,17 @@ The \textbf{Subscriber ESP32} works as the monitored unit of the room. It subscr
 
 \section{Concept}
 
-This is what I wrote in the Threat model section  - you can take it as reference to explain the concept more in details with maybe a figure.
+The project implements a secure remote monitoring system for temperature and humidity, using two ESP32 microcontrollers communicating over MQTT. 
+One ESP32 acts as a Publisher, located in the environment to be monitored. 
+It collects data from a DHT11 sensor, encrypts the measurements, and transmits them to an MQTT broker.
+The second ESP32 acts as a Subscriber. 
+It receives the encrypted data, authenticates the source, decrypts the payload, and displays the information via a local web server and a visualization dashboard.
 
-\textit{In the first chapter, we discussed about the project concept where one ESP32 is used as a data publisher mimicking the data collection of a room
-we would like the thermal conditions to be controlled via a command center, which is the alias for our second ESP32. \\
-The acquised data are sent from our ESP32 "publisher" to a MQTT server, installed on our machine for the example.  The second ESP32 is subscribed
-to the MQTT server, receiving the published data and in charge of monitoring - controlling the room conditions.  Those data are displayed
-on another MQTT server able to plot data evolution.}
-
-
-
-
-
-
-
+To ensure the security of the communication in an open wireless environment, the system implements a multi-layered security scheme. 
+Maximizing confidentiality is achieved by ensuring data cannot be read by unauthorized parties using AES-128 encryption. 
+We maintain integrity and authentication by verifying that data has not been tampered with and originates from the legitimate publisher using HMAC-SHA256. 
+Repudiation protection ensures a definitive record of sequential messages by tracking a monotonically increasing sequence counter. 
+For key agreement, we use a manual entry method, namely Morse code, to derive session keys, 
+which avoids the vulnerability of having hardcoded keys in the firmware source code. 
+Finally, network obfuscation is implemented through a port knocking sequence to complicate traffic analysis.
 
