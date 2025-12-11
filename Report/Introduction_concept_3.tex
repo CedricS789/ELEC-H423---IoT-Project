@@ -1,0 +1,75 @@
+\chapter{Introduction and concept}
+
+\section{Device}
+The Wireless and Mobile Network project for the acadmeic year 2025-2026 is built around two ESP32 DevKit boards, electronic sensor and actuators and two laptops running
+MQTT brokers and visualization tools. The objective of the project is to develop and simulate a concept focused on secure communication in an IoT environment.
+ 
+\subsection*{Hardware components}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{../pic/ESP32_schematic.png}
+    \caption{ESP32 schematic}
+\end{figure}
+
+The details of the hardwares at disposal are enumerated below:
+
+\begin{itemize}
+    \item \textbf{ESP32 boards}
+    The ESP32 is a low-power, energy-efficient microcontroller containing multiples features as 
+    \begin{itemize}
+        \item 4MB flash memory
+        \item 520KB RAM
+        \item Dual-core 32-bit processor
+        \item Wifi - bluetooth connectivity
+        \item cryptographic hardware acceleration 
+        \item Low power hardware (PMU, low power core processor)
+        \item Pheripheral interfaces (GIOPs, DAC, ADC, UART)
+    \end{itemize}
+    \item \textbf{Sensor and actuators}   
+    \begin{itemize}
+        \item a DHT11 temperature and humidity sensor,
+        \item a push button used later for entering the Morse code,
+        \item two LEDs that provide simple feedback about the system state
+              (Wi‑Fi/MQTT connection, data transmission).
+    \end{itemize}
+
+    \item \textbf{Computers running the MQTT broker}  
+    Personal laptops are used to host the Mosquitto MQTT brokers.
+    Both ESP32 boards connect to this broker over Wi‑Fi through a local access point (a smartphone hotspot in our case). The computer can also run additional tools for data visualisation, such as an MQTT dashboard or plotting software.
+\end{itemize}
+
+%\subsection*{Roles of the devices}
+%The \textbf{Publisher ESP32} works as a sensor node installed in the room. It periodically reads the DHT11 sensor, builds a JSON payload, encrypts this payload and sends it to the MQTT broker.
+%The \textbf{Subscriber ESP32} works as the monitored unit of the room. It subscribes to the encrypted topics, checks the HMAC, detects replay attacks using a counter, decrypts the data and republishes a plain version for visualisation. In this way the security mechanisms can be tested without modifying the MQTT broker itself.
+
+\section{Concept}
+
+The project simulates a highly sensitive, climate-controlled room, such as a medical storage area, where temperature and humidity 
+must be continuously monitored and regulated. It uses two ESP32 microcontrollers communicating over MQTT through publish-subscribe 
+relation and implementing a secure remote monitoring and control system.  Based on the received measurements, the control center
+ can issue control signals, e.g. adjusting an AC unit, to maintain the required environmental conditions.\\
+MQTT protocol is a lightweight internet protocol which relies to message queuing service for communication from machine to machine. It runs 
+over lossless transport layer, in our case TCP.  Two types of entities consitute a MQTT communication - the client(s), publishing or receiving
+messages and the broker, the server collecting the packets and redistributing to the messages to subscribed clients.  The MQTT protocol
+designed around the publish-subscribe communication with small overhead and payload size fits well to IoT devices - devices limited
+ in bandwidth, located in environment with unstable connection and designe for low power consumption.\\
+
+For the project, one ESP32 acts as a \textbf{publisher}, located in the environment to be monitored. 
+It collects data from a DHT11 sensor and transmits them to an MQTT broker. The second ESP32 acts as a \textbf{subscriber}.
+The drawback of MQTT is that its packets are sent in plaintext by default, so additional measures are required to secure our high sensitive
+ communication. Considering that TLS or certificatation authentification are not allowed, the whole idea will be to design a multi-layered
+ security strategy ensuring confidentiality, authentication, and integrity of all exchanged data.\\
+
+%It receives the encrypted data, authenticates the source, 
+%decrypts the payload, and displays the information via a local web server and a visualization dashboard.
+%Based on the received measurements, the control center can issue control signals, e.g. adjusting an 
+%AC unit, to maintain the required environmental conditions.
+
+%To ensure the security of the communication in an open wireless environment, the system implements a multi-layered security scheme. 
+%Maximizing confidentiality is achieved by ensuring data cannot be read by unauthorized parties using AES-128 encryption. 
+%We maintain integrity and authentication by verifying that data has not been tampered with and originates from the legitimate publisher using HMAC-SHA256. 
+%Repudiation protection ensures a definitive record of sequential messages by tracking a monotonically increasing sequence counter. 
+%For key agreement, we use Morse code, to derive session keys, 
+%which avoids the vulnerability of having hardcoded keys in the firmware source code. 
+%Finally, network obfuscation is implemented through a port knocking sequence to complicate traffic analysis.
+
